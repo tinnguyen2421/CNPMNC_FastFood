@@ -23,34 +23,35 @@ import com.google.firebase.auth.PhoneAuthProvider;
 
 import java.util.concurrent.TimeUnit;
 
-public class DeliverySendOtp extends AppCompatActivity {
+
+public class Delivery_VerifyPhone extends AppCompatActivity {
 
     String verificationId;
     FirebaseAuth FAuth;
-    Button verify;
+    Button verify, Resend;
     TextView txt;
-    String phonenumber;
-    Button Resend;
     EditText entercode;
+    String phonenumber;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_delivery_send_otp);
+        setContentView(R.layout.activity_delivery__verify_phone);
+
         phonenumber = getIntent().getStringExtra("phonenumber").trim();
         sendverificationcode(phonenumber);
-        entercode = (EditText) findViewById(R.id.ed1);
-        txt = (TextView) findViewById(R.id.txt1);
-        Resend = (Button) findViewById(R.id.btn2);
+        entercode = (EditText) findViewById(R.id.Pnumber);
+        txt = (TextView) findViewById(R.id.textt);
+        Resend = (Button) findViewById(R.id.Resendcode);
         FAuth = FirebaseAuth.getInstance();
+        verify = (Button) findViewById(R.id.Verifycode);
         Resend.setVisibility(View.INVISIBLE);
         txt.setVisibility(View.INVISIBLE);
-        verify = (Button) findViewById(R.id.btn1);
         verify.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Resend.setVisibility(View.INVISIBLE);
                 String code = entercode.getText().toString().trim();
+                Resend.setVisibility(View.INVISIBLE);
 
                 if (code.isEmpty() && code.length() < 6) {
                     entercode.setError("Enter code");
@@ -60,6 +61,7 @@ public class DeliverySendOtp extends AppCompatActivity {
                 verifyCode(code);
             }
         });
+
         new CountDownTimer(60000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
@@ -96,9 +98,9 @@ public class DeliverySendOtp extends AppCompatActivity {
 
                     }
                 }.start();
-
             }
         });
+
     }
 
     private void Resendotp(String phonenumber) {
@@ -106,29 +108,30 @@ public class DeliverySendOtp extends AppCompatActivity {
         sendverificationcode(phonenumber);
     }
 
-
     private void verifyCode(String code) {
         PhoneAuthCredential credential = PhoneAuthProvider.getCredential(verificationId, code);
-        signInwithCredential(credential);
+        linkCredential(credential);
     }
 
-    private void signInwithCredential(PhoneAuthCredential credential) {
+    private void linkCredential(PhoneAuthCredential credential) {
 
-        FAuth.signInWithCredential(credential)
-                .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+        FAuth.getCurrentUser().linkWithCredential(credential)
+                .addOnCompleteListener(Delivery_VerifyPhone.this, new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if (task.isSuccessful()) {
-                            Intent intent = new Intent(DeliverySendOtp.this, Delivery_FoodPanelBottomNavigation.class);
+
+                            Intent intent = new Intent(Delivery_VerifyPhone.this, MainMenu.class);
                             startActivity(intent);
                             finish();
+
+
                         } else {
-                            ReusableCodeForAll.ShowAlert(DeliverySendOtp.this, "Error", task.getException().getMessage());
+                            ReusableCodeForAll.ShowAlert(Delivery_VerifyPhone.this, "Error", task.getException().getMessage());
                         }
                     }
                 });
     }
-
 
     private void sendverificationcode(String number) {
 
@@ -154,7 +157,6 @@ public class DeliverySendOtp extends AppCompatActivity {
             super.onCodeSent(s, forceResendingToken);
 
             verificationId = s;
-
         }
 
         @Override
@@ -172,7 +174,8 @@ public class DeliverySendOtp extends AppCompatActivity {
         @Override
         public void onVerificationFailed(FirebaseException e) {
 
-            Toast.makeText(DeliverySendOtp.this, e.getMessage(), Toast.LENGTH_LONG).show();
+            Toast.makeText(Delivery_VerifyPhone.this, e.getMessage(), Toast.LENGTH_LONG).show();
         }
     };
+
 }

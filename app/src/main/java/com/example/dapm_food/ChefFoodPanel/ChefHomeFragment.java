@@ -1,66 +1,134 @@
-package com.example.dapm_food.ChefFoodPanel;
 
+
+import android.content.Intent;
 import android.os.Bundle;
-
-import androidx.fragment.app.Fragment;
-
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
+
+
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.dapm_food.Chef;
+import com.example.dapm_food.ChefFoodPanel.ChefhomeAdapter;
+import com.example.dapm_food.ChefFoodPanel.UpdateDishModel;
+import com.example.dapm_food.MainMenu;
 import com.example.dapm_food.R;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link ChefHomeFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
+import java.util.ArrayList;
+import java.util.List;
+
+
 public class ChefHomeFragment extends Fragment {
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
 
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
+    RecyclerView recyclerView;
+    private List<UpdateDishModel> updateDishModelList;
+    private ChefhomeAdapter adapter;
+    DatabaseReference dataaa;
+    private String State, City, Sub;
 
-    public ChefHomeFragment() {
-        // Required empty public constructor
+
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        View v = inflater.inflate(R.layout.fragment_chef_home, null);
+        getActivity().setTitle("Food On");
+        setHasOptionsMenu(true);
+        recyclerView = v.findViewById(R.id.Recycle_menu);
+        recyclerView.setHasFixedSize(true);
+        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        updateDishModelList = new ArrayList<>();
+        String userid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        dataaa = FirebaseDatabase.getInstance().getReference("Chef").child(userid);
+        dataaa.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                Chef chefc = dataSnapshot.getValue(Chef.class);
+                if(chefc !=null)
+                    State = chefc.getState();
+
+                City = chefc.getCity();
+                Sub = chefc.getSuburban();
+                chefDishes();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+
+
+        return v;
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment ChefHomeFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static ChefHomeFragment newInstance(String param1, String param2) {
-        ChefHomeFragment fragment = new ChefHomeFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
+
+    private void chefDishes() {
+
+        String userid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("FoodSupplyDetails").child(State).child(City).child(Sub).child(userid);
+        databaseReference.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                updateDishModelList.clear();
+                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                    UpdateDishModel updateDishModel = snapshot.getValue(UpdateDishModel.class);
+                    updateDishModelList.add(updateDishModel);
+
+                }
+                adapter = new ChefhomeAdapter(getContext(), updateDishModelList);
+                recyclerView.setAdapter(adapter);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+
+    }
+
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.logout, menu);
     }
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        int idd = item.getItemId();
+        if (idd == R.id.LogOut) {
+            Logout();
+            return true;
         }
+        return super.onOptionsItemSelected(item);
     }
 
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_chef_home, container, false);
+    private void Logout() {
+
+        FirebaseAuth.getInstance().signOut();
+        Intent intent = new Intent(getActivity(), MainMenu.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK );
+        startActivity(intent);
+
     }
+
+
+
 }
